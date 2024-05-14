@@ -1,12 +1,13 @@
 
 import ImageCard from "../ImageCard/ImageCard";
+import css from './ImageGallery.module.css'
 
-const ImageGallery = ({ items }) => {
+const ImageGallery = ({ items, onClick }) => {
     return (
-        <ul>
+        <ul className={css.list}>
             {items.map((item) => (
                 <li key={item.id}>
-                    <ImageCard data={item} />
+                    <ImageCard data={item} onClick={() => onClick(item)} />
                 </li>
             ))}
         </ul>

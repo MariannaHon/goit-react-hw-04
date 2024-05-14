@@ -1,38 +1,85 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 // import axios from "axios";
 import './App.css'
 
-import { fetchImagesWithSearch } from './image-api.js'
+import { fetchImagesWithSearch } from './image-api.js';
 import SearchBar from './components/SearchBar/SearchBar';
 import ImageGallery from './components/ImageGallery/ImageGallery';
+import Loader from './components/Loader/Loader.jsx';
+import ErrorMessage from './components/ErrorMessage/ErrorMessage.jsx';
+import LoadMoreBtn from './components/LoadMoreBtn/LoadMoreBtn.jsx';
+import ImageModal from './components/ImageModal/ImageModal.jsx';
 
 function App() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [total, setTotal] = useState(0);
 
-  const fetchImages = async (search) => {
-    try {
-      setImages([]);
-      setError(false);
-      setLoading(true);
-      const data = await fetchImagesWithSearch(search);
-      setImages(data);
-    } catch (error) {
-      setError(true);
-    } finally {
-      setLoading(false);
+
+
+  useEffect(() => {
+    if (search.trim() === "") {
+      return;
     }
-  };
+
+    async function fetchImages() {
+      try {
+        setError(false);
+        setLoading(true);
+        const { results, total } = await fetchImagesWithSearch(search, page);
+        setImages((prevState) => [...prevState, ...results]);
+        setTotal(total);
+      } catch (error) {
+        setError(true);
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchImages();
+  }, [page, search]);
+
+  const handleSearch = async (search) => {
+    setSearch(search);
+    setPage(1);
+    setImages([]);
+  }
+
+
+  const fetchMore = async () => {
+    setPage(page + 1);
+  }
+
+  const clickModal = (image) => {
+    setSelected(image);
+    setIsOpen(true);
+  }
+
+  const closeModal = () => {
+    setSelected(null);
+    setIsOpen(false);
+  }
+
 
   return (
-    <div>
-      < SearchBar onSearch={fetchImages} />
-      {loading && (<p>Loading data, please wait...</p>)}
-      {error && (
-        <p>Whoops, something went wrong! Please try reloading this page!</p>)}
-      {images.length > 0 && (<ImageGallery items={images} />)}
-      <h1>Find your picture</h1>
+    <div className='app-container'>
+      <h1 className='app-title'>Find your picture</h1>
+      < SearchBar onSearch={handleSearch} />
+      {loading && (<Loader />)}
+      {error && (<ErrorMessage />)}
+      {images.length > 0 && (<ImageGallery items={images} onClick={clickModal} />)}
+      {images.length > 0 && !loading && images.length < total && (<LoadMoreBtn fetchMore={fetchMore} />)}
+      {selected && (<ImageModal
+        image={selected}
+        isOpen={isOpen}
+        onClose={closeModal}
+      />)}
     </div>
   )
 }
